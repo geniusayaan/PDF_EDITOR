@@ -1,7 +1,7 @@
-import LicenseUpdater from './components/LicenseUpdater';
+import LicenseUpdater from "./components/LicenseUpdater";
 
 function App() {
-  return <LicenseUpdater />;
+  return <LicenseUpdater />
 }
 
 export default App;

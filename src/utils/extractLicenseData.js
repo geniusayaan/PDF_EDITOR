@@ -1,51 +1,64 @@
-export function extractLicenseData(rawText) {
-  const lines = rawText.split('\n').map(line => line.trim()).filter(Boolean);
+// src/utils/extractLicenseData.js
 
-  let name = '', dob = '', blood = '', father = '', address = '';
+export function extractLicenseData(text) {
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
 
-  for (const line of lines) {
-    const lower = line.toLowerCase();
+  let name = "";
+  let dob = "";
+  let blood = "";
+  let father = "";
+  let address = "Not Found";
+  let licenseNumber = "";
+  let issueDate = "";
+  let validityNT = "";
+  let validityTR = "";
 
-    // 1. Name
-    if (lower.includes('name') && !name) {
-      const match = line.match(/name[:\s]*([A-Z\s]+)/i);
-      name = match?.[1]?.trim() || '';
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (!licenseNumber && /jk\d{2}\s*\d{10}/i.test(line)) {
+      const match = line.match(/jk\d{2}\s*\d{10}/i);
+      if (match) licenseNumber = match[0];
     }
 
-    // 2. DOB
-    if ((lower.includes('dob') || lower.includes('date of birth')) && !dob) {
-      const match = line.match(/(\d{2}-\d{2}-\d{4})/);
-      dob = match?.[1] || '';
+    if (!name && /name[:\-\s]/i.test(line)) {
+      name = line.split(/name[:\-]/i)[1]?.trim();
     }
 
-    // 3. Blood Group
-    if (lower.includes('blood') && !blood) {
-      const match = line.match(/blood\s*group[:\s]*([A-Z+-]+)/i);
-      blood = match?.[1]?.toUpperCase() || 'N/A';
+    if (!dob && /date of birth[:\-\s]/i.test(line)) {
+      const match = line.match(/\d{2}[\/\-]\d{2}[\/\-]\d{4}/);
+      if (match) dob = match[0];
     }
 
-    // 4. Father / Spouse
-    if ((lower.includes('son') || lower.includes('wife') || lower.includes('daughter')) && !father) {
-      const match = line.match(/of[:\s]*([A-Z\s]+)/i);
-      father = match?.[1]?.trim() || '';
+    if (!blood && /blood group[:\-\s]/i.test(line)) {
+      blood = line.split(/blood group[:\-]/i)[1]?.trim().toUpperCase();
     }
 
-    // 5. Address
-    if (lower.includes('address') && !address) {
-      const parts = line.split(/address[:\s]*/i);
-      address = parts[1]?.trim() || '';
+    if (!father && /(son|daughter|wife) of[:\-\s]/i.test(line)) {
+      father = line.split(/of[:\-]/i)[1]?.trim();
+    }
+
+    if (!issueDate && /issue date[:\-\s]/i.test(line)) {
+      const match = line.match(/\d{2}[\/\-]\d{2}[\/\-]\d{4}/);
+      if (match) issueDate = match[0];
+    }
+
+    if ((!validityNT || !validityTR) && /validity\(nt\)|validity\(tr\)/i.test(line)) {
+      const dateMatches = line.match(/\d{2}[\/\-]\d{2}[\/\-]\d{4}/g);
+      if (dateMatches && dateMatches.length >= 2) {
+        validityNT = dateMatches[0];
+        validityTR = dateMatches[1];
+      }
+    }
+
+    // Strict address extraction: get line immediately after the one containing "Address"
+    if (line.toLowerCase().includes("address") && i + 1 < lines.length) {
+      const nextLine = lines[i + 1].trim();
+      if (nextLine.length > 5) {
+        address = nextLine;
+      }
     }
   }
 
-  // Cleanup garbage symbols
-  name = name.replace(/[^A-Z\s]/gi, '').trim();
-  father = father.replace(/[^A-Z\s]/gi, '').trim();
-
-  return {
-    name: name || 'Not Found',
-    dob: dob || 'Not Found',
-    blood: blood || 'N/A',
-    father: father || 'Not Found',
-    address: address || 'Not Found',
-  };
-}
+  return { name, dob, blood, father, address, licenseNumber, issueDate, validityNT, validityTR };
+} 
